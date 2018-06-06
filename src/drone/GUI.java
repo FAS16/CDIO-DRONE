@@ -25,7 +25,7 @@ public class GUI extends JFrame {
 	private int batteryPercantage;
 
 	public GUI(final ARDrone drone) {
-		super("Drone");
+		super("Drone ");
 		this.drone = drone;
 		setBatteryListener();
 
