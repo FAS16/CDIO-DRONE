@@ -14,7 +14,7 @@ import imgprocessing.QRCodeScanner;
 
 public class DroneMain {
 	
-	public final static int IMG_WIDTH = 640;
+	public final static int IMG_WIDTH = 640; //
 	public final static int IMG_HEIGHT = 360;
 	public final static int TOLERANCE = 35;
 	QRCodeScanner qrCodescanner;
