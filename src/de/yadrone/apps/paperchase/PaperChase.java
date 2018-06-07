@@ -18,8 +18,7 @@ public class PaperChase
 	private PaperChaseAbstractController autoController;
 	private QRCodeScanner scanner = null;
 	
-	public PaperChase()
-	{
+	public PaperChase() {
 		drone = new ARDrone();
 		drone.start();
 		drone.getCommandManager().setVideoChannel(VideoChannel.VERT);

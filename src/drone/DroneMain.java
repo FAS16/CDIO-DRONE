@@ -23,12 +23,13 @@ public class DroneMain {
 	CommandManager cmd;
 
 	public DroneMain () {
-		
+		// calibrate commando
 			drone = new ARDrone();
 			drone.start();
 			cmd = drone.getCommandManager();
 			cmd.flatTrim();
 			cmd.setVideoChannel(VideoChannel.HORI);
+			
 			
 			gui = new GUI((ARDrone) drone, this);
 			
@@ -57,11 +58,9 @@ public class DroneMain {
 				}
 			});
 			
-	
-			
 //			cmd.takeOff().doFor(5000);
-//			cmd.hover().doFor(1000);
-//			cmd.up(80).doFor(2000);
+//			cmd.up(30).doFor(500);
+//			cmd.hover().doFor(10000);
 //			cmd.landing();
 	}
 	
