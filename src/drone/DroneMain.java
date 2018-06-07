@@ -4,24 +4,39 @@ import de.yadrone.base.ARDrone;
 import de.yadrone.base.IARDrone;
 import de.yadrone.base.command.CommandManager;
 import de.yadrone.base.command.LEDAnimation;
+import de.yadrone.base.command.VideoChannel;
 import de.yadrone.base.exception.ARDroneException;
 import de.yadrone.base.exception.IExceptionListener;
 import de.yadrone.base.navdata.AttitudeListener;
 import de.yadrone.base.navdata.BatteryListener;
+import imgprocessing.QRCodeScanner;
 
 
 public class DroneMain {
+	
+	public final static int IMG_WIDTH = 640;
+	public final static int IMG_HEIGHT = 360;
+	public final static int TOLERANCE = 35;
+	QRCodeScanner qrCodescanner;
+	IARDrone drone = null;
+	GUI gui;
+	CommandManager cmd;
 
-	public static void main(String[] args) {
+	public DroneMain () {
 		
-		IARDrone drone = null;
-		GUI gui;
-		CommandManager cmd;
-		try {
 			drone = new ARDrone();
 			drone.start();
+			cmd = drone.getCommandManager();
+			cmd.flatTrim();
+			cmd.setVideoChannel(VideoChannel.HORI);
 			
-			gui = new GUI((ARDrone) drone);
+			gui = new GUI((ARDrone) drone, this);
+			
+			this.qrCodescanner = new QRCodeScanner();
+			this.qrCodescanner.addListener(gui);
+			
+			drone.getVideoManager().addImageListener(gui);
+			drone.getVideoManager().addImageListener(qrCodescanner);
 
 			drone.getNavDataManager().addAttitudeListener(new AttitudeListener() {
 				public void attitudeUpdated(float pitch, float roll, float yaw) {
@@ -41,20 +56,18 @@ public class DroneMain {
 					exc.printStackTrace();
 				}
 			});
-
-			cmd = drone.getCommandManager();
-			cmd.takeOff();
-			cmd.hover().doFor(10000);
 			
-		} catch (Exception exc) {
-
-		}
-		// finally
-		// {
-		// if (drone != null)
-		// drone.stop();
-		// System.exit(0);
-		// }
+	
+			
+//			cmd.takeOff().doFor(5000);
+//			cmd.hover().doFor(1000);
+//			cmd.up(80).doFor(2000);
+//			cmd.landing();
+	}
+	
+	public static void main(String[] args) {
+		System.loadLibrary("opencv_java341"); 
+		new DroneMain();
 	}
 
 }

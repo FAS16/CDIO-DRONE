@@ -3,8 +3,12 @@ package imgprocessing;
 import java.awt.image.BufferedImage;
 
 import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.Map;
 
+import com.google.zxing.BarcodeFormat;
 import com.google.zxing.BinaryBitmap;
+import com.google.zxing.DecodeHintType;
 import com.google.zxing.LuminanceSource;
 import com.google.zxing.MultiFormatReader;
 import com.google.zxing.ReaderException;
@@ -12,6 +16,7 @@ import com.google.zxing.Result;
 import com.google.zxing.ResultPoint;
 import com.google.zxing.client.j2se.BufferedImageLuminanceSource;
 import com.google.zxing.common.HybridBinarizer;
+import com.google.zxing.qrcode.QRCodeReader;
 
 import de.yadrone.base.video.ImageListener;
 
@@ -33,7 +38,11 @@ public class QRCodeScanner implements ImageListener
 		BinaryBitmap bitmap = new BinaryBitmap(new HybridBinarizer(source));
 
 		// decode the barcode (if only QR codes are used, the QRCodeReader might be a better choice)
-		MultiFormatReader reader = new MultiFormatReader();
+//		MultiFormatReader reader = new MultiFormatReader();
+		QRCodeReader reader = new QRCodeReader();
+		
+		Map<DecodeHintType,BarcodeFormat> readerHint = new HashMap<DecodeHintType, BarcodeFormat>();
+		readerHint.put(DecodeHintType.valueOf("POSSIBLE_FORMATS"), BarcodeFormat.QR_CODE);
 
 		double theta = Double.NaN;
 		try
