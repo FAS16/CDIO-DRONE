@@ -1,6 +1,5 @@
 package drone;
 
-import de.yadrone.apps.paperchase.PaperChase;
 import de.yadrone.base.ARDrone;
 import de.yadrone.base.IARDrone;
 import de.yadrone.base.command.VideoChannel;
@@ -14,6 +13,8 @@ import com.google.zxing.Result;
 import com.google.zxing.ResultPoint;
 
 import java.awt.*;
+import java.awt.event.ItemEvent;
+import java.awt.event.ItemListener;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.awt.event.WindowAdapter;
@@ -53,18 +54,24 @@ public class GUI extends JFrame implements ImageListener, TagListener {
 				GridBagConstraints.BOTH, new Insets(0, 0, 0, 0), 0, 0));
 		pack();
 
+	}
+	
+	private void initMenu() {
+		JMenu options = new JMenu("Options");
 
-//		drone.getVideoManager().addImageListener(new ImageListener() {
-//			public void imageUpdated(BufferedImage newImage) {
-//				image = newImage;
-//				SwingUtilities.invokeLater(new Runnable() {
-//					public void run() {
-//						repaint();
-//					}
-//				});
-//			}
-//		});
+		final JCheckBoxMenuItem autoControlMenuItem = new JCheckBoxMenuItem("Enable autonomous mode");
+		autoControlMenuItem.addItemListener(new ItemListener() {
+			public void itemStateChanged(ItemEvent e) {
+				main.enableAutoControl(autoControlMenuItem.isSelected());
+			}
+		});
 
+		options.add(autoControlMenuItem);
+
+		JMenuBar menuBar = new JMenuBar();
+		menuBar.add(options);
+
+		setJMenuBar(menuBar);
 	}
 	
 	private JPanel createVideoPanel() {
@@ -83,7 +90,9 @@ public class GUI extends JFrame implements ImageListener, TagListener {
 					// Draw battery percentage
 					g.setColor(Color.GREEN);
 					g.setFont(font);
-					g.drawString("Battery: " + batteryPercentage + "%", 0, 25);
+					g.drawString("Altitude: " + main.getAltitude(),10, 50);
+					g.drawString("Battery: " + batteryPercentage + "%", 10, 25);
+					
 					
 					// Draw tolerance field (rectangle)
 					g.setColor(Color.RED);
@@ -120,9 +129,7 @@ public class GUI extends JFrame implements ImageListener, TagListener {
         				if ((System.currentTimeMillis() - result.getTimestamp()) > 1000) {
 							result = null;
 						}
-    					
     				}
-					
 				}
 				
 				else {
@@ -130,12 +137,8 @@ public class GUI extends JFrame implements ImageListener, TagListener {
 					g.setColor(Color.RED);
 					g.setFont(font);
 					g.drawString("Waiting for image ...", 10, 20);
-				}
-				
+				}	
 			}
-			
-			
-			
 		};
 		
 		videoPanel.setSize(DroneMain.IMG_WIDTH, DroneMain.IMG_HEIGHT);
@@ -170,13 +173,6 @@ public class GUI extends JFrame implements ImageListener, TagListener {
 		}
 	}
 	
-	
-
-//	public void paint(Graphics g) {
-//		if (image != null)
-//			g.drawImage(image, 0, 0, image.getWidth(), image.getHeight(), null);
-//	}
-
 	private void setBatteryListener() {
 		drone.getNavDataManager().addBatteryListener(new BatteryListener() {
 
