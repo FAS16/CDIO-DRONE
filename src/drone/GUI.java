@@ -6,12 +6,14 @@ import de.yadrone.base.IARDrone;
 import de.yadrone.base.command.VideoChannel;
 import de.yadrone.base.navdata.BatteryListener;
 import de.yadrone.base.video.ImageListener;
+import imgprocessing.OpenCVListener;
 import imgprocessing.TagListener;
 
 import javax.swing.*;
 
 import com.google.zxing.Result;
 import com.google.zxing.ResultPoint;
+import org.opencv.core.MatOfPoint;
 
 import java.awt.*;
 import java.awt.event.MouseAdapter;
@@ -19,15 +21,18 @@ import java.awt.event.MouseEvent;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
 import java.awt.image.BufferedImage;
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * Created by fahadali on 06-06-2018.
  */
 
-public class GUI extends JFrame implements ImageListener, TagListener {
+public class GUI extends JFrame implements ImageListener, TagListener, OpenCVListener {
 	
 	private BufferedImage image = null;
 	private Result result;
+	private List<MatOfPoint> points;
 	private IARDrone drone;
 	private DroneMain main;
 	private JPanel videoPanel;
@@ -96,6 +101,13 @@ public class GUI extends JFrame implements ImageListener, TagListener {
 						      		  new int[] {imgCenterY-tolerance, imgCenterY-tolerance, imgCenterY+tolerance, imgCenterY+tolerance}, 4);
     				
     				// Draw triangle if QR code is visible
+					if(points != null){
+						Object[] objects = points.toArray();
+
+						// Printing array of objects
+						for (Object obj : objects)
+							System.out.print(obj + " ");
+					}
     				if(result != null) {
     					
     					ResultPoint[] points = result.getResultPoints();
@@ -211,4 +223,11 @@ public class GUI extends JFrame implements ImageListener, TagListener {
 
 	}
 
+	@Override
+	public void onRect(List<MatOfPoint> points) {
+		if (points != null) {
+			this.points = points;
+		}
+
+	}
 }
