@@ -5,6 +5,7 @@ import de.yadrone.base.IARDrone;
 import de.yadrone.base.command.VideoChannel;
 import de.yadrone.base.navdata.BatteryListener;
 import de.yadrone.base.video.ImageListener;
+import imgprocessing.*;
 import imgprocessing.TagListener;
 
 import javax.swing.*;
@@ -25,7 +26,7 @@ import java.awt.image.BufferedImage;
  * Created by fahadali on 06-06-2018.
  */
 
-public class GUI extends JFrame implements ImageListener, TagListener {
+public class GUI extends JFrame implements CircleListener, ImageListener, TagListener {
 	
 	private BufferedImage image = null;
 	private Result result;
@@ -33,6 +34,7 @@ public class GUI extends JFrame implements ImageListener, TagListener {
 	private DroneMain main;
 	private JPanel videoPanel;
 	private String orientation;
+	private Circle[] circles;
 
 	private int batteryPercentage;
 
@@ -41,6 +43,7 @@ public class GUI extends JFrame implements ImageListener, TagListener {
 		this.drone = drone;
 		this.main = main;
 		setBatteryListener();
+		initMenu();
 		
 		setSize(640, 360);
 		setVisible(true);
@@ -130,6 +133,17 @@ public class GUI extends JFrame implements ImageListener, TagListener {
 							result = null;
 						}
     				}
+    				
+    				// Draw ports
+					if (circles != null)
+						for (Circle c : circles) {
+							g.setColor(Color.BLUE);
+							g.drawRect((int) c.x , (int) c.y , 10, 10);
+							g.setColor(Color.GREEN);
+							g.drawOval((int) (c.x - c.r) , (int) (c.y - c.r) ,
+									(int) (2 * c.r) , (int) (2 * c.r) );
+							g.drawString(c.toString(), (int) c.x  + 10, (int) c.y  + 10);
+						}
 				}
 				
 				else {
@@ -205,6 +219,11 @@ public class GUI extends JFrame implements ImageListener, TagListener {
 			}
 		});
 
+	}
+	
+	@Override
+	public void circlesUpdated(Circle[] circles) {
+		this.circles = circles;
 	}
 
 }

@@ -11,15 +11,17 @@ import de.yadrone.base.command.VideoChannel;
 import de.yadrone.base.exception.ARDroneException;
 import de.yadrone.base.exception.IExceptionListener;
 import de.yadrone.base.navdata.AttitudeListener;
+import imgprocessing.CircleDetector;
 import imgprocessing.QRCodeScanner;
 
 public class DroneMain {
 
-	public final static int TOLERANCE = 35;
+	public final static int TOLERANCE = 40;
 	public final static int IMG_WIDTH = 640;
 	public final static int IMG_HEIGHT = 360;
 
 	QRCodeScanner qrCodescanner;
+	CircleDetector circleDetector;
 	IARDrone drone = null;
 	GUI gui;
 	CommandManager cmd;
@@ -46,9 +48,14 @@ public class DroneMain {
 
 		this.qrCodescanner = new QRCodeScanner();
 		this.qrCodescanner.addListener(gui);
+		
+		this.circleDetector = new CircleDetector();
+		this.circleDetector.addListener(gui);
+		
 
 		drone.getVideoManager().addImageListener(gui);
 		drone.getVideoManager().addImageListener(qrCodescanner);
+		drone.getVideoManager().addImageListener(circleDetector);
 
 		drone.getNavDataManager().addAttitudeListener(new AttitudeListener() {
 			public void attitudeUpdated(float pitch, float roll, float yaw) {
@@ -94,6 +101,7 @@ public class DroneMain {
 	public static void main(String[] args) {
 		System.loadLibrary(Core.NATIVE_LIBRARY_NAME);
 		new DroneMain();
+		
 	}
 
 }
