@@ -7,6 +7,7 @@ import de.yadrone.apps.paperchase.controller.PaperChaseKeyboardController;
 import de.yadrone.base.ARDrone;
 import de.yadrone.base.IARDrone;
 import de.yadrone.base.command.CommandManager;
+import de.yadrone.base.command.LEDAnimation;
 import de.yadrone.base.command.VideoChannel;
 import de.yadrone.base.exception.ARDroneException;
 import de.yadrone.base.exception.IExceptionListener;
@@ -16,7 +17,7 @@ import imgprocessing.QRCodeScanner;
 
 public class DroneMain {
 
-	public final static int TOLERANCE = 40;
+	public final static int TOLERANCE = 35;
 	public final static int IMG_WIDTH = 640;
 	public final static int IMG_HEIGHT = 360;
 
@@ -24,7 +25,6 @@ public class DroneMain {
 	CircleDetector circleDetector;
 	IARDrone drone = null;
 	GUI gui;
-	CommandManager cmd;
 	AutonomousController controller;
 	private boolean autonomousControl = false;
 
@@ -32,9 +32,7 @@ public class DroneMain {
 		// calibrate commando
 		drone = new ARDrone();
 		drone.start();
-		cmd = drone.getCommandManager();
-		cmd.flatTrim();
-		cmd.setVideoChannel(VideoChannel.HORI);
+		drone.getCommandManager().setVideoChannel(VideoChannel.HORI);
 
 		gui = new GUI((ARDrone) drone, this);
 
@@ -53,6 +51,7 @@ public class DroneMain {
 		this.circleDetector.addListener(gui);
 		
 
+		drone.getVideoManager().addImageListener(controller);
 		drone.getVideoManager().addImageListener(gui);
 		drone.getVideoManager().addImageListener(qrCodescanner);
 		drone.getVideoManager().addImageListener(circleDetector);
@@ -75,6 +74,22 @@ public class DroneMain {
 				exc.printStackTrace();
 			}
 		});
+		
+		final int SPEED = 50;
+		final int SLEEP = 10000;
+		final int DURATION = 100;
+		
+//		drone.getCommandManager().takeOff();
+		
+//		try { Thread.sleep(SLEEP); } catch (InterruptedException ex) { }
+//		drone.getCommandManager().hover().doFor(5000);
+//		drone.getCommandManager().up(SPEED*3).doFor(DURATION);
+//		drone.getCommandManager().hover().doFor(2000);
+//		drone.getCommandManager().forward(SPEED).doFor(DURATION);
+//		drone.getCommandManager().hover(); // Husk at hover efter hver kommando
+
+		
+		
 
 	}
 
@@ -82,7 +97,7 @@ public class DroneMain {
 		System.out.println("MasterDrone enableAutoControler: " + enable);
 		if (enable) {
 			qrCodescanner.addListener(controller);
-			new Thread(controller).start(); // Alternative: controller.start();
+			controller.start(); // Alternative: controller.start();
 		} else {
 			controller.stopController();
 			qrCodescanner.removeListener(controller);

@@ -16,6 +16,9 @@ public class FirstTest {
 	
 	
 	public static void main(String[] args) {
+		final int SPEED = 5;
+		final int SLEEP = 1000;
+		final int DURATION = 500;
 		
 		// Loading native library - opencv .dylib-file
 		System.loadLibrary("opencv_java341");
@@ -26,9 +29,16 @@ public class FirstTest {
 	        drone = new ARDrone();
 	        drone.start(); // Activates managers - CommandManager, NavDataManager osv.
 	        cmd = drone.getCommandManager();
-	        cmd.takeOff().doFor(100);
-	        cmd.hover().doFor(10000);
+	        
+	        cmd.takeOff();
+	        cmd.hover().doFor(5000);
 	        cmd.landing();
+	        
+//	        cmd.hover();
+//	        cmd.goLeft(SPEED).doFor(DURATION);
+//			cmd.hover();
+////			Thread.currentThread().sleep(SLEEP);
+//	        cmd.landing();
 	        
 	        
 //	        int speed = 30;

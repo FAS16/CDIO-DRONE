@@ -6,6 +6,8 @@ import java.awt.event.KeyEvent;
 import java.awt.event.KeyListener;
 
 import de.yadrone.base.IARDrone;
+import de.yadrone.base.command.CalibrationCommand;
+import de.yadrone.base.command.Device;
 
 public class KeyboardCommandManager implements KeyListener
 {
@@ -50,6 +52,10 @@ public class KeyboardCommandManager implements KeyListener
 
 		switch (key)
 		{
+			case KeyEvent.VK_C:
+				System.out.println("Calibrating..");
+				drone.getCommandManager().setCommand(new CalibrationCommand(Device.MAGNETOMETER));
+				break;
 			case KeyEvent.VK_ENTER:
 				drone.takeOff();
 				break;
