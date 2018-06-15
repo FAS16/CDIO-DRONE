@@ -134,20 +134,34 @@ public class ImageProcessing implements ImageListener {
     }
 
     private Mat detectWhiteRect(Mat frame){
+        Mat src = frame;
         Mat grayFrame = new Mat();
+        Mat grad = new Mat();
         Mat blurredImage = new Mat();
         Mat binarizedImage = new Mat();
+        int scale = 1;
+        int delta = 0;
+        int ddepth = CvType.CV_16S;
         //TODO: DO FOR WHITE RECT ONLY
         // convert the frame in gray scale
-        Imgproc.cvtColor(frame, grayFrame, Imgproc.COLOR_BGR2GRAY);
-        //equalize the frame histogram to improve the result
-        Imgproc.equalizeHist(grayFrame, grayFrame);
-        //Gaussian Blur
-        Imgproc.GaussianBlur(grayFrame, blurredImage, new Size(5, 5), 0);
-        Imgproc.threshold(blurredImage, binarizedImage, 60, 255, Imgproc.THRESH_BINARY);
+        Imgproc.GaussianBlur(src, src, new Size(3, 3), Core.BORDER_DEFAULT);
+
+        Imgproc.cvtColor(src, grayFrame, Imgproc.COLOR_RGB2GRAY);
+
+        Mat grad_x = new Mat(), grad_y = new Mat();
+        Mat abs_grad_x = new Mat(), abs_grad_y = new Mat();
+
+        //Imgproc.Scharr( src_gray, grad_x, ddepth, 1, 0, scale, delta, Core.BORDER_DEFAULT );
+        Imgproc.Sobel( grayFrame, grad_x, ddepth, 1, 0, 3, scale, delta, Core.BORDER_DEFAULT );
+        //Imgproc.Scharr( src_gray, grad_y, ddepth, 0, 1, scale, delta, Core.BORDER_DEFAULT );
+        Imgproc.Sobel( grayFrame, grad_y, ddepth, 0, 1, 3, scale, delta, Core.BORDER_DEFAULT );
+
+        Core.convertScaleAbs( grad_x, abs_grad_x );
+        Core.convertScaleAbs( grad_y, abs_grad_y );
+        Core.addWeighted( abs_grad_x, 0.5, abs_grad_y, 0.5, 0, grad );
 
         List<MatOfPoint> contours = new ArrayList<>();
-        Imgproc.findContours(binarizedImage, contours, new Mat(), Imgproc.RETR_EXTERNAL, Imgproc.CHAIN_APPROX_SIMPLE);
+        Imgproc.findContours(grad, contours, new Mat(), Imgproc.RETR_EXTERNAL, Imgproc.CHAIN_APPROX_SIMPLE);
         this.cont = contours;
 
         //draw rect on paper
