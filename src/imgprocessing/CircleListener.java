@@ -2,5 +2,5 @@ package imgprocessing;
 
 public interface CircleListener {
 
-	public void circlesUpdated(Circle[] circle);
+	public void onCircle(Circle[] circle);
 }

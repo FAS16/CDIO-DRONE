@@ -35,6 +35,7 @@ public class GUI extends JFrame implements CircleListener, ImageListener, TagLis
 	private JPanel videoPanel;
 	private String orientation;
 	private Circle[] circles;
+	private boolean print = true;
 
 	private int batteryPercentage;
 
@@ -56,6 +57,9 @@ public class GUI extends JFrame implements CircleListener, ImageListener, TagLis
 		add(createVideoPanel(), new GridBagConstraints(0, 0, 1, 2, 1, 1, GridBagConstraints.FIRST_LINE_START,
 				GridBagConstraints.BOTH, new Insets(0, 0, 0, 0), 0, 0));
 		pack();
+		
+		
+		
 
 	}
 	
@@ -79,13 +83,22 @@ public class GUI extends JFrame implements CircleListener, ImageListener, TagLis
 	
 	private JPanel createVideoPanel() {
 		
+		
 		videoPanel = new JPanel() {
 			
 			private Font font = new Font("SansSerif", Font.BOLD, 14);
 			
+			
+			
 			public void paint(Graphics g) {
 				
 				if(image != null) {
+					
+					if(print) {
+						System.out.println("Resolution: " + image.getWidth()+ " x " + image.getHeight());
+						print = false;
+					}
+					
 					
 					// Drawing the camera image
 					g.drawImage(image, 0, 0, image.getWidth(), image.getHeight(), null);
@@ -135,7 +148,7 @@ public class GUI extends JFrame implements CircleListener, ImageListener, TagLis
     				}
     				
     				// Draw ports
-					if (circles != null)
+					/*if (circles != null)
 						for (Circle c : circles) {
 							g.setColor(Color.BLUE);
 							g.drawRect((int) c.x , (int) c.y , 10, 10);
@@ -143,7 +156,7 @@ public class GUI extends JFrame implements CircleListener, ImageListener, TagLis
 							g.drawOval((int) (c.x - c.r) , (int) (c.y - c.r) ,
 									(int) (2 * c.r) , (int) (2 * c.r) );
 							g.drawString(c.toString(), (int) c.x  + 10, (int) c.y  + 10);
-						}
+						}*/
 				}
 				
 				else {
@@ -222,7 +235,7 @@ public class GUI extends JFrame implements CircleListener, ImageListener, TagLis
 	}
 	
 	@Override
-	public void circlesUpdated(Circle[] circles) {
+	public void onCircle(Circle[] circles) {
 		this.circles = circles;
 	}
 

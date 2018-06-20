@@ -6,9 +6,6 @@ import de.yadrone.apps.paperchase.controller.PaperChaseKeyboardController;
 
 import de.yadrone.base.ARDrone;
 import de.yadrone.base.IARDrone;
-import de.yadrone.base.command.CommandManager;
-import de.yadrone.base.command.LEDAnimation;
-import de.yadrone.base.command.VideoChannel;
 import de.yadrone.base.exception.ARDroneException;
 import de.yadrone.base.exception.IExceptionListener;
 import de.yadrone.base.navdata.AttitudeListener;
@@ -20,19 +17,19 @@ public class DroneMain {
 	public final static int TOLERANCE = 35;
 	public final static int IMG_WIDTH = 640;
 	public final static int IMG_HEIGHT = 360;
+	
 
-	QRCodeScanner qrCodescanner;
-	CircleDetector circleDetector;
-	IARDrone drone = null;
-	GUI gui;
-	AutonomousController controller;
-	private boolean autonomousControl = false;
+	private QRCodeScanner qrCodescanner;
+	private CircleDetector circleDetector;
+	private IARDrone drone = null;
+	private GUI gui;
+	private AutonomousController controller;
+	private boolean autonomousControl;
 
 	public DroneMain() {
-		// calibrate commando
 		drone = new ARDrone();
 		drone.start();
-		drone.getCommandManager().setVideoChannel(VideoChannel.HORI);
+		drone.getCommandManager().setMaxAltitude(1750);
 
 		gui = new GUI((ARDrone) drone, this);
 
@@ -46,10 +43,9 @@ public class DroneMain {
 
 		this.qrCodescanner = new QRCodeScanner();
 		this.qrCodescanner.addListener(gui);
-		
+
 		this.circleDetector = new CircleDetector();
 		this.circleDetector.addListener(gui);
-		
 
 		drone.getVideoManager().addImageListener(controller);
 		drone.getVideoManager().addImageListener(gui);
@@ -74,22 +70,29 @@ public class DroneMain {
 				exc.printStackTrace();
 			}
 		});
-		
-		final int SPEED = 50;
-		final int SLEEP = 10000;
-		final int DURATION = 100;
-		
-//		drone.getCommandManager().takeOff();
-		
-//		try { Thread.sleep(SLEEP); } catch (InterruptedException ex) { }
-//		drone.getCommandManager().hover().doFor(5000);
-//		drone.getCommandManager().up(SPEED*3).doFor(DURATION);
-//		drone.getCommandManager().hover().doFor(2000);
-//		drone.getCommandManager().forward(SPEED).doFor(DURATION);
-//		drone.getCommandManager().hover(); // Husk at hover efter hver kommando
 
-		
-		
+		final int SPEED = 40;
+		final int SLEEP = 3000;
+		final int DURATION = 50;
+
+		drone.getCommandManager().takeOff();
+		drone.getCommandManager().hover().doFor(2000); // Must hover here, or else it will float around
+		try {
+			Thread.sleep(6000);
+		} catch (InterruptedException ex) {
+		}
+		 this.enableAutoControl(true);
+
+		// drone.getCommandManager().up(30).doFor(30);
+		// controller.setAltitude(900);
+		//
+
+		// try { Thread.sleep(SLEEP); } catch (InterruptedException ex) { }
+		// drone.getCommandManager().hover().doFor(4000);
+		// drone.getCommandManager().up(SPEED*3).doFor(DURATION);
+		// drone.getCommandManager().hover().doFor(2000);
+		// drone.getCommandManager().forward(50).doFor(100);
+		// drone.getCommandManager().hover(); // Husk at hover efter hver kommando
 
 	}
 
@@ -105,10 +108,6 @@ public class DroneMain {
 		this.autonomousControl = enable;
 	}
 
-	public boolean getAutonomousControl() {
-		return this.autonomousControl;
-	}
-	
 	public int getAltitude() {
 		return controller.getAltitude();
 	}
@@ -116,7 +115,7 @@ public class DroneMain {
 	public static void main(String[] args) {
 		System.loadLibrary(Core.NATIVE_LIBRARY_NAME);
 		new DroneMain();
-		
+
 	}
 
 }

@@ -20,7 +20,6 @@ public class CircleDetector implements ImageListener {
 	private static final int BLUR = 9; // Blur amount, removes noise - must be uneven
 	
 	private long imageCount = 0;
-	// Used for only checking specific frames -> skipping frames.
 	private final int skipValueForFrames = 5; 
 	
 	private ArrayList<CircleListener> listeners = new ArrayList<CircleListener>();
@@ -73,7 +72,7 @@ public class CircleDetector implements ImageListener {
 			return;
 		Circle[] circles = findCircles(img);
 		for (CircleListener listener : listeners)
-			listener.circlesUpdated(circles);
+			listener.onCircle(circles);
 	}
 	
 	public void addListener(CircleListener listener) {

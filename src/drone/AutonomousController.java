@@ -22,23 +22,36 @@ public class AutonomousController extends AbstractController implements TagListe
 	private Result tag;
 	private float tagOrientation;
 	private ArrayList<String> portsToFind = new ArrayList<String>();
-	
+
 	protected double latestImgTime; // Not used yet
 	private StateController stateController;
 	private int altitude;
 	private CommandManager cmd;
-	private String nextQr; // Husk at implementere dette
+	private String nextPort; // Husk at implementere dette
+	private boolean tagLost;
+	private Command latestCommand;
+	private int portCounter;
+	private boolean tagSpotted;
+
+	
+	final int SPEED = 5; //10
+	final int HOVER = 2500; 
+	final int DURATION = 120; //100
 
 	public AutonomousController(IARDrone drone) {
 		super(drone);
+		latestCommand = null;
 		this.cmd = drone.getCommandManager();
 		portsToFind.add("P.00");
 		portsToFind.add("P.01");
 		portsToFind.add("P.02");
 		portsToFind.add("P.03");
 		portsToFind.add("P.04");
-		portsToFind.add("P.05");
+//		portsToFind.add("P.05");
 		portsToFind.add("P.06");
+		portCounter = 0;
+		nextPort = portsToFind.get(portCounter);
+		System.out.println("AutonomousController:** Next port is "+ nextPort +" **");
 
 		setAltitudeListener();
 	}
@@ -62,33 +75,29 @@ public class AutonomousController extends AbstractController implements TagListe
 		int imgCenterX = DroneMain.IMG_WIDTH / 2;
 		int imgCenterY = DroneMain.IMG_HEIGHT / 2;
 
-//		ResultPoint[] points = tag.getResultPoints();
+		// ResultPoint[] points = tag.getResultPoints();
 		Point centerOfQR = getCenterOfQr();
 		boolean isCentered = ((centerOfQR.x > (imgCenterX - DroneMain.TOLERANCE))
 				&& (centerOfQR.x < (imgCenterX + DroneMain.TOLERANCE))
-				&& (centerOfQR.y > (imgCenterY - DroneMain.TOLERANCE))
-				&& (centerOfQR.y < (imgCenterY + DroneMain.TOLERANCE)));
+				/*&& (centerOfQR.y > (imgCenterY - DroneMain.TOLERANCE))
+				&& (centerOfQR.y < (imgCenterY + DroneMain.TOLERANCE))*/);
 
 		System.out.println("AutonomousController: Is tag centered ? " + isCentered);
 
 		return isCentered;
 	}
-	
+
 	public Point getCenterOfQr() {
 		Point center = null;
-		
 		ResultPoint[] points = tag.getResultPoints();
-		
+
 		float horiDistance = points[2].getX() - points[1].getX();
-		
-		float xOfCenter = points[1].getX() + (horiDistance/2);
-		
+		float xOfCenter = points[1].getX() + (horiDistance / 2);
+
 		float vertDistance = points[1].getY() - points[0].getY();
-		
-		float yOfCenter = points[0].getY() + (vertDistance/2);
-		
+		float yOfCenter = points[0].getY() + (vertDistance / 2);
+
 		center = new Point(xOfCenter, yOfCenter);
-		
 		return center;
 	}
 
@@ -106,38 +115,129 @@ public class AutonomousController extends AbstractController implements TagListe
 	@Override
 	public void run() {
 		this.doStop = false;
-		stateController = new StateController(this, drone, drone.getCommandManager());
+		// stateController = new StateController(this, drone,
+		// drone.getCommandManager());
 		// stateController.state = CurrentState.h;
 		while (!doStop) // control loop
 		{
-			
+
 			System.out.print(".");
 			try {
-				// reset if too old (and not updated)
-				if ((tag != null) && (System.currentTimeMillis() - tag.getTimestamp() > 2000)) {
+				
+				if(tag == null) {
+//					searchForQr();
+					
+					System.out.println("AutonomousController: NO TAG FOUND - going FORWARD:");
+					cmd.forward(10).doFor(185); // 10 - 185;
+					cmd.hover().doFor(2000);
+					cmd.hover();
+					this.sleep(2500);
+					}
+				
+				// reset if too old (and not updated), so it nullifies the tag
+				if ((tag != null) && (System.currentTimeMillis() - tag.getTimestamp() > 1500)) {
 					System.out.println("AutonomousController: Resetting tag");
 					tag = null;
 				}
 
-				else if (tag != null) {
-					System.out.println("AutonomousController: QR-TAG FOUND");
-					if (!isTagCentered()) {
-						System.out.println("AutonomousController: QR-TAG is not centered - Trying to center");
-						centralizeQR();
+				if (tag != null) {
+					tagSpotted = true;
+					tagLost = false;
+					System.out.println("AutonomousController: QR-TAG FOUND - Trying to center");
+					centralizeQR();
+					this.sleep(3500);
 
-					} 
-
-				}
-				
-//				if(tag == null) {
-//					
-//					System.out.println("AutonomousController: Tag is NULL");
+				} else if (tag == null && latestCommand != null) {
+					tagLost = true;
+					// Drone lost, redo!
+//					searchForLostQr();
+				} 
+//				else /*if (tag == null)*/ {
+////					searchForQr();
+//					System.out.println("AutonomousController: NO TAG FOUND - going FORWARD:");
+//					cmd.forward(10).doFor(165);
+//					cmd.hover().doFor(2000);
+//					cmd.hover();
+//					this.sleep(2000);
 //				}
 
 			} catch (Exception e) {
 				e.printStackTrace();
 			}
 		}
+	}
+	
+	
+	private void searchForQr() throws InterruptedException {
+		
+		boolean change = false;
+		
+		if(!change) {
+			cmd.forward(25).doFor(75);
+			cmd.hover().doFor(5000);
+			this.sleep(1500);
+			change = !change;
+		} else if(change) {
+			cmd.backward(25).doFor(75);
+			cmd.hover().doFor(5000);
+			this.sleep(1500);
+			change = !change;
+		}
+		
+	}
+
+	private void searchForLostQr() throws InterruptedException {
+		if (latestCommand == Command.FORWARD) {
+			cmd.backward(SPEED).doFor(DURATION);
+			cmd.hover().doFor(HOVER/2);
+			cmd.goRight(SPEED).doFor(DURATION);
+			cmd.goLeft(SPEED).doFor(DURATION);
+			cmd.hover();
+//			this.sleep(1500);
+//			this.latestCommand = null;
+
+		} else if (latestCommand == Command.BACKWARD) {
+			cmd.forward(SPEED).doFor(DURATION);
+			cmd.hover().doFor(HOVER/2);
+			cmd.goRight(SPEED).doFor(DURATION);
+			cmd.goLeft(SPEED).doFor(DURATION);
+			cmd.hover();
+//			this.sleep(1500);
+//			this.latestCommand = null;
+
+		} else if (latestCommand == Command.RIGHT) {
+			cmd.backward(SPEED).doFor(DURATION);
+			cmd.hover().doFor(HOVER/2);
+			cmd.goLeft(SPEED).doFor(DURATION);
+			cmd.hover().doFor(HOVER);
+			cmd.hover();
+//			this.sleep(1500);
+//			this.latestCommand = Command.RIGHT;
+		
+		} else if (latestCommand == Command.LEFT) {
+			cmd.backward(SPEED).doFor(DURATION);
+			cmd.hover().doFor(HOVER/2);
+			cmd.goRight(SPEED).doFor(DURATION);
+			cmd.hover().doFor(HOVER);
+//			this.sleep(1500);
+//			this.latestCommand = null;
+
+		} else if (latestCommand == Command.UP) {
+			cmd.down(SPEED).doFor(DURATION);
+			cmd.hover().doFor(HOVER);
+//			this.sleep(1500);
+//			this.latestCommand = null;
+
+		
+
+		} else if (latestCommand == Command.DOWN) {
+			cmd.up(SPEED).doFor(DURATION);
+			cmd.hover().doFor(HOVER);
+//			this.sleep(1500);
+//			this.latestCommand = null;		
+
+		}
+
 	}
 
 	private void setAltitudeListener() {
@@ -167,10 +267,6 @@ public class AutonomousController extends AbstractController implements TagListe
 
 	public void centralizeQR() throws InterruptedException {
 
-		final int SPEED = 40;
-		final int HOVER = 3000;
-		final int DURATION = 40;
-
 		ResultPoint[] points;
 		String qrText;
 		double distanceFromMiddle;
@@ -184,138 +280,172 @@ public class AutonomousController extends AbstractController implements TagListe
 		double xOfCenter = DroneMain.IMG_WIDTH / 2;
 		double yOfCenter = DroneMain.IMG_HEIGHT / 2;
 		Point cameraCenter = new Point(xOfCenter, yOfCenter);
-		System.out.println("Coordinates of camera center: ("+ cameraCenter.x +", "+ cameraCenter.y+")");
+		System.out.println("Coordinates of camera center: (" + cameraCenter.x + ", " + cameraCenter.y + ")");
 
 		// Tag (QR) center point
-//		double xOfQr = points[1].getX();
-//		double yOfQr = points[1].getY();
-//		Point qrCenter = new Point(xOfQr, yOfQr);
+		// double xOfQr = points[1].getX();
+		// double yOfQr = points[1].getY();
+		// Point qrCenter = new Point(xOfQr, yOfQr);
 		Point qrCenter = getCenterOfQr();
-		System.out.println("Coordinates of QR-TAG center: ("+ qrCenter.x +", "+ qrCenter.y+")");
-		
+		System.out.println("Coordinates of QR-TAG center: (" + qrCenter.x + ", " + qrCenter.y + ")");
+
 		// Moving drone according to QR and it's center
 		
-		if(getTagSize() < 50) {
-			System.out.println("AutonomousController: TAG SIZE = "+ getTagSize());
-			System.out.println("AutonomousController: going FORWARD towards QR-tag");
-			cmd.forward(SPEED).doFor(DURATION);
-			cmd.hover().doFor(HOVER);
-//			this.sleep(500);
-			
-		}
-		 else if (qrCenter.x < (cameraCenter.x - DroneMain.TOLERANCE)) {
+		
+		 
+
+
+		
+		
+		 if (qrCenter.x < (cameraCenter.x - DroneMain.TOLERANCE) && getTagSize() > 30) {
 			System.out.println("AutonomousController: going LEFT towards QR-tag");
 			// Go left
 			cmd.goLeft(SPEED).doFor(DURATION);
 			cmd.hover().doFor(HOVER);
 //			this.sleep(500);
-			
-		} else if (qrCenter.x > (cameraCenter.x + DroneMain.TOLERANCE)) {
+			this.latestCommand = Command.LEFT;
+			//
+		} else if (qrCenter.x > (cameraCenter.x + DroneMain.TOLERANCE)  && getTagSize() > 30) {
 			System.out.println("AutonomousController: going RIGHT towards QR-tag");
 			// Go right
 			cmd.goRight(SPEED).doFor(DURATION);
 			cmd.hover().doFor(HOVER);
 //			this.sleep(500);
-		} 
-		
-		else if (qrCenter.y < (cameraCenter.y - DroneMain.TOLERANCE)) {
-			 System.out.println("AutonomousController: going UP towards QR-tag");
-			// Go up
-			cmd.up(SPEED).doFor(DURATION);
-			cmd.hover().doFor(HOVER);
-//			this.sleep(500);
-			
-			
-		} else if (qrCenter.y > (cameraCenter.y + DroneMain.TOLERANCE)) {
-			System.out.println("AutonomousController: going DOWN towards QR-tag");
-			// Go down
-			cmd.down(SPEED).doFor(DURATION);
-			cmd.hover().doFor(HOVER);
-//			this.sleep(500);
-			
+			this.latestCommand = Command.RIGHT;
 		}
-		if(isTagCentered()) {
+		
+		else if (getTagSize() < 35) {
+				System.out.println("AutonomousController: TAG SIZE = " + getTagSize());
+				System.out.println("AutonomousController: going FORWARD towards QR-tag");
+				cmd.forward(SPEED).doFor(DURATION);
+				cmd.hover().doFor(HOVER);
+//				this.sleep(500);
+				this.latestCommand = Command.FORWARD;
+
+			} else if (getTagSize() > 50 && getTagSize() < 70) {
+
+				System.out.println("AutonomousController: TAG SIZE = " + getTagSize());
+				System.out.println("AutonomousController: TOO CLOSE going BACKWARDS away from QR-tag");
+				cmd.backward(SPEED).doFor(DURATION);
+				cmd.hover().doFor(HOVER);
+//				this.sleep(500);
+				this.latestCommand = Command.BACKWARD;
+
+			} 
+//		else if (qrCenter.y < (cameraCenter.y - DroneMain.TOLERANCE)) {
+//			System.out.println("AutonomousController: going UP towards QR-tag");
+//			// Go up
+//			cmd.up(SPEED).doFor(DURATION);
+//			cmd.hover().doFor(HOVER);
+////			this.sleep(500);
+//			this.latestCommand = Command.UP;
+//
+//		} else if (qrCenter.y > (cameraCenter.y + DroneMain.TOLERANCE)) {
+//			System.out.println("AutonomousController: going DOWN towards QR-tag");
+//			// Go down
+//			cmd.down(SPEED).doFor(DURATION);
+//			cmd.hover().doFor(HOVER);
+////			this.sleep(500);
+//			this.latestCommand = Command.DOWN;
+
+//		}
+	else if (isTagCentered()) {
+			cmd.setLedsAnimation(LEDAnimation.BLINK_ORANGE, 10, 1);
 			System.out.println("AutonomousController: TAG CENTERED");
-			flyThroughPort(qrText);
-			drone.getCommandManager().setLedsAnimation(LEDAnimation.BLINK_GREEN, 10, 5);
+			flyThroughPort();
+			
 		}
 
 	}
-
-	public void flyThroughPort(String qrText) {
-		
-//		if(qrText.equals(nextQr)) {
-		System.out.println("AutonomousController: READY TO FLY THROUGH PORT");
-		cmd.up(50*2).doFor(100);
-		cmd.hover().doFor(2000);
-		cmd.forward(50).doFor(200);
-		cmd.hover().doFor(2000);
-		cmd.landing();
-//		}
-		}
 	
+	private void alignWithQr() {
+		Point center = null;
+		ResultPoint[] points = tag.getResultPoints();
+		float horiDistance = points[2].getX() - points[1].getX();
+		float vertDistance = points[1].getY() - points[0].getY();
+		float y1 = points[1].getY();
+		float y2 = points[2].getY();
+
+//		System.out.println("Horizontal distance: " + horiDistance);
+//		System.out.println("Vertical distance: " + vertDistance);
+		
+		System.out.println("Upper left y = " + y1);
+		System.out.println("Upper right y = " + y2);
+	}
+
+	public void flyThroughPort() {
+	
+		if(getTag().getText().trim().equals(nextPort)) {
+		System.out.println("AutonomousController: Port validated, access given to fly through");
+		cmd.up(50 * 2).doFor(140); //-140
+//		setAltitude(1300);
+		cmd.hover().doFor(3000);
+//		cmd.spinRight(10).doFor(20); // HUUUUSK
+		cmd.forward(25).doFor(195); //215 - 20 - 200 - 225 - 25
+		cmd.hover().doFor(3000);
+		cmd.hover();
+		cmd.down(50).doFor(200); //- 200
+//		cmd.goRight(40).doFor(40).hover(); // kom væk fra bænken til venstre
+		
+//		if(nextPort.equals(portsToFind.get(0))) {
+//			cmd.down(30).doFor(30);
+//			cmd.hover().doFor(2000);
+//			cmd.hover();
+//			System.out.println("AutonomousController: 1");
+//			cmd.setLedsAnimation(LEDAnimation.BLINK_ORANGE, 10, 1);
+//		}
+//		else {
+//			setAltitude(900);	
+//			System.out.println("AutonomousController: 2");
+//			cmd.setLedsAnimation(LEDAnimation.BLINK_ORANGE, 10, 1);
+//		}
+//		
+
+		
+		updateNextPort();
+		tagSpotted = false;
+		
+		 }
+		
+		// }
+	}
+	
+	private void updateNextPort() {
+		++portCounter;
+		nextPort = portsToFind.get(portCounter);
+		System.out.println("AutonomousController:** Next port is "+ nextPort +" **");
+		// Måske noget if til at spinne mere hvis det er p.02
+		
+		cmd.spinRight(50).doFor(40).hover();
+	}
+	
+	public void adjustDrone() {
+		
+	}
+
 	public double getTagSize() {
-		if (tag != null){
+		if (tag != null) {
 			ResultPoint[] points = tag.getResultPoints();
 			return points[2].getX() - points[1].getX();
-		}			
-		else
+		} else
 			return 0.0;
 	}
+	
 
-	private void centerTag() throws InterruptedException {
-
-		final int SPEED = 5;
-		final int SLEEP = 2000;
-		final int DURATION = 500;
-
-		String tagText;
-		ResultPoint[] points;
-
-		synchronized (tag) {
-			points = tag.getResultPoints();
-			tagText = tag.getText();
-		}
-
-		int imgCenterX = DroneMain.IMG_WIDTH / 2;
-		int imgCenterY = DroneMain.IMG_HEIGHT / 2;
-
-		float x = points[1].getX();
-		float y = points[1].getY();
-
-		if ((tagOrientation > 10) && (tagOrientation < 180)) {
-			System.out.println("AutonomousController: Spin left");
-			drone.getCommandManager().spinLeft(SPEED * 2).doFor(DURATION);
-			drone.getCommandManager().hover();
-			Thread.currentThread().sleep(SLEEP);
-		} else if ((tagOrientation < 350) && (tagOrientation > 180)) {
-			System.out.println("AutonomousController: Spin right");
-			drone.getCommandManager().spinRight(SPEED * 2).doFor(DURATION);
-			drone.getCommandManager().hover();
-			Thread.currentThread().sleep(SLEEP);
-		} else if (x < (imgCenterX - DroneMain.TOLERANCE)) {
-			System.out.println("AutonomousController: Go left");
-			drone.getCommandManager().goLeft(SPEED).doFor(DURATION);
-			drone.getCommandManager().hover();
-			Thread.currentThread().sleep(SLEEP);
-		} else if (x > (imgCenterX + DroneMain.TOLERANCE)) {
-			System.out.println("AutonomousController: Go right");
-			drone.getCommandManager().goRight(SPEED).doFor(DURATION);
-			drone.getCommandManager().hover();
-			Thread.currentThread().sleep(SLEEP);
-		} else if (y < (imgCenterY - DroneMain.TOLERANCE)) {
-			System.out.println("AutonomousController: Go forward");
-			drone.getCommandManager().forward(SPEED).doFor(DURATION);
-			Thread.currentThread().sleep(SLEEP);
-		} else if (y > (imgCenterY + DroneMain.TOLERANCE)) {
-			System.out.println("AutonomousController: Go backward");
-			drone.getCommandManager().backward(SPEED).doFor(DURATION);
-			drone.getCommandManager().hover();
-			Thread.currentThread().sleep(SLEEP);
-		} else {
-			System.out.println("AutonomousController: Tag centered");
-			drone.getCommandManager().setLedsAnimation(LEDAnimation.BLINK_GREEN, 10, 5);
-
+	public void setAltitude(int altitude) {
+		System.out.println("AutonomousController: setAltitude() START: " + altitude);
+		while (true) {
+			// Decrease altitude
+			if (altitude + 50 < getAltitude()) { 
+				cmd.down(30).doFor(30).hover();
+				// Increase altitude
+			} else if (altitude - 50 > getAltitude()) { 
+				cmd.up(30).doFor(30).hover();
+				
+			} else {
+				System.out.println("AutonomousController: setAltitude() DONE - Altitude = " + getAltitude()); // done
+				return;
+			}
 		}
 	}
 
